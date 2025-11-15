@@ -16,17 +16,14 @@
 #define logic_in_wrap 2
 
 static const uint16_t logic_in_program_instructions[] = {
-            //     .wrap_target
-    0xe080, //  0: set    pindirs, 0                 
     0x4001, //  1: in     pins, 1                    
-    0x0001, //  2: jmp    1                          
-            //     .wrap
+
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program logic_in_program = {
     .instructions = logic_in_program_instructions,
-    .length = 3,
+    .length = 1,
     .origin = -1,
 };
 
@@ -36,4 +33,3 @@ static inline pio_sm_config logic_in_program_get_default_config(uint offset) {
     return c;
 }
 #endif
-

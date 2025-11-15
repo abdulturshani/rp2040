@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "arduino-target-device",
+			"path": "../../arduino-target-device"
+		}
+	],
+	"settings": {}
+}

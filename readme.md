@@ -6,7 +6,7 @@ Created By: Adam Momen | Abdulfatah Alturshani
 
 ### Overview
 --- 
-The main aim from this project is the use of the RP2040 PIO feature, and use it at its full potential to sample a given digiral signal with a frequency up to 20 MHz (even up to 30 MHz is fine). The PIO (Programmble Input/ Output) controller is a key feature that enables this chip to reach such high speed signaling. But understanding the low level mechanism and how this contoller is functioning is a little tricky. However using the Arduino with Pico SDK, it was easier to make this work.
+The main aim from this project is the use of the RP2040 PIO feature, and use it at its full potential to sample a given digital signal with a frequency up to 62.5 MHz (at full clock speed `125 MHz`). The PIO (Programmble Input/ Output) controller is a key feature that enables this chip to reach such high speed signaling. But understanding the low level mechanism and how this contoller is functioning is a little tricky. However using the Arduino with Pico SDK, it was easier to make this work.
 
 ![alt text](<Screenshot 2025-11-11 at 8.43.15 PM.png>)
 
@@ -21,10 +21,10 @@ In short it is a programmable controller that could be automated. The RP2040 has
 ---
 Each PIO unite has its own Instruction Memory which could hold up to 32 instructions, and read from 4 ports at the time. 
 
-The PIO has a total of nine instructions: JMP, WAIT, IN, OUT, PUSH, PULL, MOV, IRQ, and SET. See Section 3.4 for details on these
+The PIO has a total of nine instructions: `JMP, WAIT, IN, OUT, PUSH, PULL, MOV, IRQ, and SET`. See Section 3.4 for details on these
 instructions.
 
-The PIO assembler is included with the SDK, and is called pioasm. This program processes a PIO assembly input text file,
+The PIO assembler is included with the SDK, and is called `pioasm`. This program processes a PIO assembly input text file,
 which may contain multiple programs, and writes out the assembled programs ready for use.
 
 ```c
@@ -57,7 +57,7 @@ In this experiment I have written a simple snippet to configure a GPIO to be inp
 1. Usual initialization procedure.
 2. Configure the INPUT_PIN as PIO input.
 3. in the `loop()` function, read the `rx_fifo` register (32_bit) and store it’s data in.
-4. Using the VS_Code extension [Serial Plotter], a special serial printing should be used to plot the read bit stream.
+4. Using the VS_Code extension [Serial Plotter](https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter), a special serial printing should be used to plot the read bit stream.
 
 ``` C
 void loop() {
@@ -93,6 +93,9 @@ static const uint16_t logic_in_program_instructions[] = {
             //     .wrap
 };
 ```
+
+### PIO + DMA (Auto Buffering)
+
 
 ### Links
 ---
