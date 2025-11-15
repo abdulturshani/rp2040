@@ -40,63 +40,73 @@ which may contain multiple programs, and writes out the assembled programs ready
 ---
 1. Select the PIO block (pio0/ pio1)
 2. State Machine variable, to hold the value of the active state machine [0,1,2,3]
-3. `LED_PIN = 6,` GPIO 6.
+3. Set in pin_base [GPIO_NUM] starting from [GPIO_0] & the `pin_count`, how many pins to use after the `pin_base`.
+   For example, `pin_base = 0;` and `pin_count = 4`, this means the PIO would scan the GPIOs from [GPIO_0], [GPIO_1], [GPIO_2], and [GPIO_3].
 4. Program is in direct machine code instead of the PIOASM, to avoid using the assembler. Here is an online PIOASM tool to compile the code directly.
 
 * [pioasm Online | Wokwi](https://wokwi.com/tools/pioasm)
 
 5. Program details, most important [length of the instructions, origin (usually -1)]
-2. `pio_gpio_init` → to link the GPIO to be used with PIO.
-3. Configurations are little advanced, next chapter.
-4. Load the program to the Instruction memory, via the `pio_add_program` function. offset of the memory address will be returned.
-5. Last init the PIO, State Machine via `pio_sm_init  & pio_sm_set_enabled.`
+6. `pio_gpio_init` → to link the GPIO to be used with PIO.
+7. Configurations are little advanced, next chapter.
+8. Load the program to the Instruction memory, via the `pio_add_program` function. offset of the memory address will be returned.
+9. Last init the PIO, State Machine via `pio_sm_init  & pio_sm_set_enabled.`
 
 ### Simple Logic Analyzer (1-bit stream)
 ---
 In this experiment I have written a simple snippet to configure a GPIO to be input tied with PIO_0 to read the income bit stream. at the fastest frequency the sampling rate should reach up to 60MHz (not sure, needed to confirm it later). 
-1. Usual initialization procedure.
-2. Configure the INPUT_PIN as PIO input.
-3. in the `loop()` function, read the `rx_fifo` register (32_bit) and store it’s data in.
+1. `pio_init` function is responible of setting up the IN reading program, which is consists of simply `in pins, pin_count` instruciotn.
+2. Call  PIO instance and setup the `pin_base` & `pin_count` to initilize the PIO. Start sampling imedietely upon success PIO init.
+3. in the `print_channels` function, read the `rx_fifo` register (32_bit) and store it’s data in.
 4. Using the VS_Code extension [Serial Plotter](https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter), a special serial printing should be used to plot the read bit stream.
+5. To stream multiple channels [Pins] at the same time, we use the `rx_fifo` as 8-bit template by reading only the first 8-bits [a bit for each channel] where the `MUXIMUM_CHANNEL_NUM` is 8.
 
 ``` C
-void loop() {
-  // Read data from FIFO (each word = 32 samples)
-  if (!pio_sm_is_rx_fifo_empty(pio, sm)) {
-    uint32_t word = pio_sm_get(pio, sm);
-    Serial.print(">");
-    Serial.print("var1:");
-    Serial.print((word/(0xffffffff)));
-    Serial.print(",");
-    Serial.println(); // Writes \r\n
-    delay(10);
-  }
+void print_channels (PIO pio, uint8_t sm )
+{
+    while(true) {
+    // Read data from FIFO (each word = 32 samples)
+    if (!pio_sm_is_rx_fifo_empty(pio, sm)) {
+        uint32_t word = pio_sm_get(pio, sm);
+        for (uint8_t i = 0; i < MAX_CHANNEL_NUM; i++){
+            uint8_t bit = (word>>i)&0x01;
+            Serial.print(">");
+            Serial.print("ch");
+            Serial.print(i);
+            Serial.print(":");
+            Serial.print(bit);
+            Serial.print(",");
+            Serial.print("ts:");
+            Serial.print(micros());
+            Serial.println();
+            delay(100);
+            }
+        }
+    }
 }
 ```
-5. Using the online `PIOASM`, the assembly code was automatically generated.
+5. Further more the `micros()` function is used to transmit the actual time stamps. This will be useful when running my own [pico_logger.py](pico_logger.py) serial plotter.
+
+6. We can use the assembler `PIOASM` to write the needed instructions as below:
 
 ```c
 // assembly instructions for the PIO
 .program logic_in
-    set pindirs, 0        ; all pins input (assumes 1 pin)
-loop:
-    in pins, 1            ; sample one bit
-    jmp loop
+.wrap_target
+    in pins, pin_count            ; sample pins 
+.wrap
 ```
-
+however, as long as we we need only 1 instruction to do the scanning, then the following method `pio_encode_in(pin_base, pin_count)` can just do it!
 ``` C
-static const uint16_t logic_in_program_instructions[] = {
-            //     .wrap_target
-    0xe080, //  0: set    pindirs, 0                 
-    0x4001, //  1: in     pins, 1                    
-    0x0001, //  2: jmp    1                          
-            //     .wrap
+uint16_t prg_instr = pio_encode_in(pio_pins, pin_count);
+struct pio_program prg = {
+    .instructions = &prg_instr,
+    .length=1,
+    .origin=-1
 };
 ```
 
-### PIO + DMA (Auto Buffering)
-
-
-### Links
+### Useful Links:
 ---
-[RP2040 Technical Manual](https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf)
+* [RP2040 Technical Manual](https://datasheets.raspberrypi.com/rp2040/rp2040-datasheet.pdf)
+* [RP2040 SDK Programming Manual{C/C++}](https://pip-assets.raspberrypi.com/categories/610-raspberry-pi-pico/documents/RP-008354-DS-1-raspberry-pi-pico-c-sdk.pdf?disposition=inline)
